@@ -1,1 +1,7 @@
-HI!!!
+Implementations of four distributed algorithms in the Promela language.
+
+ - Centralized Algorithm
+ - Crumbling Wall Algorithms
+ - ???
+ - ???
+
