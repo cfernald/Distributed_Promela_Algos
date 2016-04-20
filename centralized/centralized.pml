@@ -21,8 +21,7 @@ init {
 proctype central() {
     int ppid = 0;
     do
-        :: skip
-end:    request ? ppid;
+        :: request ? ppid;
         atomic { 
             blocking[ppid] ? 1;
             release ! 1;
@@ -35,8 +34,7 @@ end:    request ? ppid;
 proctype server(int i) {
     int req = 0;
     do
-        :: skip
-        request ! i;
+        :: request ! i;
         req = req + 1;
         blocking[i] ! 1;
         atomic {

@@ -1,6 +1,6 @@
 
 #define N 5
-#define MAX_REQS 1000
+#define MAX_REQS 10
 
 #define TS_MULT 100
 
@@ -26,9 +26,23 @@ proctype server(int p) {
     int reqTS = 0;
     bool requested = false;
     int front;
+    int reqs = 0;
 
     do
-        :: !(imInCS) ->
+        :: !(imInCS) -> 
+
+        if 
+            :: (!requested) ->
+                // send requests
+                reqTS = (TS_MULT * ts) + p
+                for (i : 0 .. N-1) {
+                    requests[i] !! reqTS;
+                }
+                ts = ts + 1;
+                requested = true;
+            :: else -> skip;
+        fi
+
         if
             :: requests[p] ? front ->
                 if
@@ -41,34 +55,33 @@ proctype server(int p) {
                         ts = ts + 1;
                         atomic { acks[frontPid] = acks[frontPid] + 1; }
                 fi
+            :: else -> skip;
+        fi
+
+        if
             :: (acks[p] == N - 1) ->
-progress1:       imInCS = true;
+                imInCS = true;
                 requested = false;
                 acks[p] = 0;
                 inCS = inCS + 1;
                 assert (inCS == 1);
-                //totCS = totCS + 1;
-            
-            :: (!requested) ->
-                // send requests
-                reqTS = (TS_MULT * ts) + p
-                for (i : 0 .. N-1) {
-                    requests[i] !! reqTS;
-                }
-                ts = ts + 1;
-                requested = true;
+            :: else -> skip;  
         fi
         
         :: (imInCS) ->
             if 
-                ::  skip
                 ::  atomic {
                     imInCS = false;
                     inCS = inCS - 1;
                     assert (inCS == 0);
                 }
                 requests[p] ? front;
-progress2:       assert (front % TS_MULT == p);
+progress2:      assert (front % TS_MULT == p);
+                reqs = reqs + 1;
+            fi
+            if  :: reqs >= MAX_REQS ->
+                    break;
+                :: else -> skip;
             fi
     od
 }
