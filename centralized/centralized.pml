@@ -1,6 +1,6 @@
 
 #define N 5
-#define MAX_REQS 10000
+#define MAX_REQS 10
 
 chan blocking[N] = [0] of {bit};
 chan request = [N] of {byte};
@@ -8,21 +8,13 @@ chan release = [0] of {bit};
 int inCS = 0;
 int totCS = 0;
 
-proctype monitor() {
-    do
-        :: assert(inCS <= 1);
-    od
-}
-
 init {
     atomic {
-        //run monitor();
         run central();
-        run server(0);
-        run server(1);
-        run server(2);
-        run server(3);
-        run server(4);
+        int i;
+        for (i : 0 .. N - 1) {
+            run server(i);
+        }
     }
 }
 
@@ -34,7 +26,8 @@ end:    request ? ppid;
         atomic { 
             blocking[ppid] ? 1;
             release ! 1;
-            inCS = inCS - 1; 
+            inCS = inCS - 1;
+            assert (inCS == 0); 
         }
     od
 }
@@ -46,7 +39,10 @@ proctype server(int i) {
         request ! i;
         req = req + 1;
         blocking[i] ! 1;
-        inCS = inCS + 1;
+        atomic {
+            inCS = inCS + 1;
+            assert (inCS == 1);
+        }
         totCS = totCS + 1;
         release ? 1;
         if :: (req >= MAX_REQS) -> break           

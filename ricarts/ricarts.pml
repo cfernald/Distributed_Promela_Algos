@@ -12,18 +12,11 @@ int inCS = 0;
 init {
     int i;
     atomic {
-    //run monitor();
     for (i : 0 .. N - 1) {
         run server(i);
         acks[i] = 0;
     }
     }
-}
-
-proctype monitor() {
-    do
-        :: assert(inCS <= 1)
-    od
 }
 
 proctype server(int p) {
@@ -53,6 +46,7 @@ progress1:       imInCS = true;
                 requested = false;
                 acks[p] = 0;
                 inCS = inCS + 1;
+                assert (inCS == 1);
                 //totCS = totCS + 1;
             
             :: (!requested) ->
@@ -71,6 +65,7 @@ progress1:       imInCS = true;
                 ::  atomic {
                     imInCS = false;
                     inCS = inCS - 1;
+                    assert (inCS == 0);
                 }
                 requests[p] ? front;
 progress2:       assert (front % TS_MULT == p);
