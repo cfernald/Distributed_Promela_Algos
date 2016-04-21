@@ -1,6 +1,6 @@
 
-#define N 5
-#define MAX_REQS 10
+#define N 3
+#define MAX_REQS 5
 
 #define TS_MULT 100
 
@@ -41,11 +41,11 @@ proctype server(int p) {
                 }
                 ts = ts + 1;
                 requested = true;
-            :: requested -> skip;
+            :: (requested) -> skip;
         fi
 
         if
-            :: nempty(requests[p]) ->
+            :: (nempty(requests[p])) ->
                 requests[p] ? front;
                 if
                     ::  (front % TS_MULT == p)->
@@ -57,7 +57,7 @@ proctype server(int p) {
                         ts = ts + 1;
                         atomic { acks[frontPid] = acks[frontPid] + 1; }
                 fi
-            :: empty(requests[p]) -> skip;
+            :: (empty(requests[p])) -> skip;
         fi
 
         if
@@ -65,12 +65,15 @@ proctype server(int p) {
                 imInCS = true;
                 requested = false;
                 acks[p] = 0;
-                inCS = inCS + 1;
-progress1:      assert (inCS == 1);
-            :: (acks[p] != N - 1);  
+                atomic {
+                    inCS = inCS + 1;
+progress1:          assert (inCS == 1);
+                }
+            :: (acks[p] != N - 1) -> skip;  
         fi
         
         :: (imInCS) ->
+            // CS code
             if 
                 ::  atomic {
                     imInCS = false;
@@ -80,29 +83,28 @@ progress1:      assert (inCS == 1);
                 requests[p] ? front;
 progress2:      assert (front % TS_MULT == p);
                 reqs = reqs + 1;
-                printf("%d\n", reqs);
             fi
             
+            // Check to see if we are done with CS requests
             if  :: reqs >= MAX_REQS ->
                     atomic { procsRunning = procsRunning - 1; }
                     do 
-                        :: procsRunning > 0 ->
+                        :: (procsRunning > 0) ->
                         if
                             :: nempty(requests[p]) ->
                             requests[p] ? front;
                             if
-                                ::  (front % TS_MULT == p)->
-                                    requests[p] !! front;
                                 ::  (front % TS_MULT != p) ->
                                     frontPid = front % TS_MULT;
                                     frontTS = front / TS_MULT;
                                     ts = ((frontTS > ts) -> frontTS : ts);
                                     ts = ts + 1;
                                     atomic { acks[frontPid] = acks[frontPid] + 1; }
+                                :: else -> skip;
                             fi
                             :: empty(requests[p]) -> skip;
                         fi
-                        :: procsRunning <= 0 ->
+                        :: (procsRunning <= 0) ->
                             break;
                     od
                     break;
