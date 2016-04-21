@@ -1,5 +1,5 @@
 
-#define N 5
+#define N 3
 #define MEALS 4
 
 byte forks[N];
@@ -32,35 +32,20 @@ proctype phil (int i) {
     int mycount = MEALS;
     int first = ((left < right) -> left : right);
     int second = ((first == left) -> right : left);
-
+    int left_person = ((i == 0) -> N - 1 : i - 1);
+    int right_person = (i + 1) % N;
 
     do 
         :: if
-            :: (!eating && request[left] == true && forks[left] == i && (dirty[left] || thinking)) ->
+            :: (request[left] == true && forks[left] == i && (dirty[left] || thinking)) ->
                 dirty[left] = false;
-                int owner = ((i == 0) -> N - 1 : i - 1);
-                forks[left] = owner;
+                forks[left] = left_person;
                 request[left] = false;
                 
-            :: (!eating && request[right] == true && forks[right] == i && (dirty[right] || thinking)) ->
+            :: (request[right] == true && forks[right] == i && (dirty[right] || thinking)) ->
                 dirty[right] = false;
-                forks[right] = (i + 1) % N;
+                forks[right] = right_person;
                 request[right] = false;
-
-            :: (eating) ->
-                inCS[i] = true;
-                if :: (mycount == 0) ->
-                        atomic { stillHungry = stillHungry - 1; }
-                   :: else -> skip;
-                fi
-                atomic{ totCS = totCS + 1; }
-                printf("%d\n", mycount);
-                mycount = mycount - 1;
-                thinking = true;
-                eating = false;
-                dirty[left] = true;
-                dirty[right] = true;
-                inCS[i] = false;
 
             :: (stillHungry == 0) ->
                 break;
@@ -75,28 +60,46 @@ proctype phil (int i) {
                     do
                         ::  (forks[first] != i && request[first] == false) ->
                             request[first] = true;
+
                         ::  (forks[second] != i && forks[first] == i && request[second] == false) ->
                             request[second] = true;
+
                         :: (forks[first] == i && forks[second] == i) ->
                             break;
 
-                        :: (!eating && request[left] == true && forks[left] == i && dirty[left]) ->
+                        :: (request[left] == true && forks[left] == i && dirty[left]) ->
                             dirty[left] = false;
-                            int owner2 = ((i == 0) -> N - 1 : i - 1);
-                            forks[left] = owner2;
+                            forks[left] = left_person;
                             request[left] = false;
                 
-                        :: (!eating && request[right] == true && forks[right] == i && dirty[right]) ->
+                        :: (request[right] == true && forks[right] == i && dirty[right]) ->
                             dirty[right] = false;
-                            forks[right] = (i + 1) % N;
+                            forks[right] = right_person;
                             request[right] = false;
 
                     od
                     eating = true;
                     hungry = false;
+                    
+                    atomic {
+                        inCS[i] = true;
+                        assert ( inCS[left_person] == false );
+                        assert ( inCS[right_person] == false );
+                    }
+
+                    mycount = mycount - 1;
+                    if :: (mycount == 0) ->
+                        atomic { stillHungry = stillHungry - 1; }
+                    :: else -> skip;
+                    fi
+                    atomic{ totCS = totCS + 1; }
+                    thinking = true;
+                    eating = false;
+                    dirty[left] = true;
+                    dirty[right] = true;
+                    inCS[i] = false;
+
                 fi
         fi
     od
-
-
 }
