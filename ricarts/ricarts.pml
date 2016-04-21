@@ -7,6 +7,7 @@
 chan requests[N] = [N] of {int};
 int acks[N];
 int inCS = 0;
+int procsRunning = N;
 //int totCS = 0;
 
 init {
@@ -25,7 +26,7 @@ proctype server(int p) {
     int i;
     int reqTS = 0;
     bool requested = false;
-    int front;
+    int front, frontPid, frontTS;
     int reqs = 0;
 
     do
@@ -40,22 +41,23 @@ proctype server(int p) {
                 }
                 ts = ts + 1;
                 requested = true;
-            :: else -> skip;
+            :: requested -> skip;
         fi
 
         if
-            :: requests[p] ? front ->
+            :: nempty(requests[p]) ->
+                requests[p] ? front;
                 if
                     ::  (front % TS_MULT == p)->
                         requests[p] !! front;
-                    ::  else ->
-                        int frontPid = front % TS_MULT;
-                        int frontTS = front / TS_MULT;
+                    ::  (front % TS_MULT != p) ->
+                        frontPid = front % TS_MULT;
+                        frontTS = front / TS_MULT;
                         ts = ((frontTS > ts) -> frontTS : ts);
                         ts = ts + 1;
                         atomic { acks[frontPid] = acks[frontPid] + 1; }
                 fi
-            :: else -> skip;
+            :: empty(requests[p]) -> skip;
         fi
 
         if
@@ -64,8 +66,8 @@ proctype server(int p) {
                 requested = false;
                 acks[p] = 0;
                 inCS = inCS + 1;
-                assert (inCS == 1);
-            :: else -> skip;  
+progress1:      assert (inCS == 1);
+            :: (acks[p] != N - 1);  
         fi
         
         :: (imInCS) ->
@@ -78,10 +80,34 @@ proctype server(int p) {
                 requests[p] ? front;
 progress2:      assert (front % TS_MULT == p);
                 reqs = reqs + 1;
+                printf("%d\n", reqs);
             fi
+            
             if  :: reqs >= MAX_REQS ->
+                    atomic { procsRunning = procsRunning - 1; }
+                    do 
+                        :: procsRunning > 0 ->
+                        if
+                            :: nempty(requests[p]) ->
+                            requests[p] ? front;
+                            if
+                                ::  (front % TS_MULT == p)->
+                                    requests[p] !! front;
+                                ::  (front % TS_MULT != p) ->
+                                    frontPid = front % TS_MULT;
+                                    frontTS = front / TS_MULT;
+                                    ts = ((frontTS > ts) -> frontTS : ts);
+                                    ts = ts + 1;
+                                    atomic { acks[frontPid] = acks[frontPid] + 1; }
+                            fi
+                            :: empty(requests[p]) -> skip;
+                        fi
+                        :: procsRunning <= 0 ->
+                            break;
+                    od
                     break;
-                :: else -> skip;
+           
+                :: reqs < MAX_REQS -> skip;
             fi
     od
 }
