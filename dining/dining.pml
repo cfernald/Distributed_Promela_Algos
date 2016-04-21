@@ -58,16 +58,7 @@ proctype phil (int i) {
                     thinking = false;
 
                 ::  (hungry) ->
-                    do
-                        :: if
-                        ::  (forks[first] != i && request[first] == false) ->
-                            request[first] = true;
-                        
-                        ::  (forks[second] != i && forks[first] == i && request[second] == false) ->
-                            request[second] = true;
-                        :: else -> skip;
-                        fi
-
+                    do 
                         ::  (forks[first] == i && forks[second] == i) ->
                             break;
 
@@ -80,7 +71,15 @@ proctype phil (int i) {
                             dirty[right] = false;
                             forks[right] = right_person;
                             request[right] = false;
-
+                        :: else ->
+                        if
+                        ::  (forks[first] != i && request[first] == false) ->
+                            request[first] = true;
+                        
+                        ::  (forks[second] != i && forks[first] == i && request[second] == false) ->
+                            request[second] = true;
+                        :: else -> skip;
+                        fi
                     od
                     eating = true;
                     hungry = false;
