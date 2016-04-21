@@ -48,6 +48,7 @@ proctype phil (int i) {
                 request[right] = false;
 
             :: (stillHungry == 0) ->
+                assert (totCS == N * MEALS);
                 break;
 
             :: (mycount > 0) ->
@@ -91,11 +92,11 @@ proctype phil (int i) {
                     }
 
                     mycount = mycount - 1;
+                    atomic{ totCS = totCS + 1; }
                     if :: (mycount == 0) ->
                         atomic { stillHungry = stillHungry - 1; }
                     :: else -> skip;
                     fi
-                    atomic{ totCS = totCS + 1; }
                     thinking = true;
                     eating = false;
                     dirty[left] = true;
