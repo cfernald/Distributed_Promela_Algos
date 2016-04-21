@@ -1,6 +1,6 @@
 
 #define N 3
-#define MEALS 4
+#define MEALS 3
 
 byte forks[N];
 bool dirty[N];
@@ -58,21 +58,24 @@ proctype phil (int i) {
 
                 ::  (hungry) ->
                     do
+                        :: if
                         ::  (forks[first] != i && request[first] == false) ->
                             request[first] = true;
-
+                        
                         ::  (forks[second] != i && forks[first] == i && request[second] == false) ->
                             request[second] = true;
+                        :: else -> skip;
+                        fi
 
-                        :: (forks[first] == i && forks[second] == i) ->
+                        ::  (forks[first] == i && forks[second] == i) ->
                             break;
 
-                        :: (request[left] == true && forks[left] == i && dirty[left]) ->
+                        ::  (request[left] == true && forks[left] == i && dirty[left]) ->
                             dirty[left] = false;
                             forks[left] = left_person;
                             request[left] = false;
                 
-                        :: (request[right] == true && forks[right] == i && dirty[right]) ->
+                        ::  (request[right] == true && forks[right] == i && dirty[right]) ->
                             dirty[right] = false;
                             forks[right] = right_person;
                             request[right] = false;
