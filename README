@@ -1,7 +1,7 @@
 Implementations of four distributed algorithms in the Promela language.
 
  - Centralized Algorithm
- - Crumbling Wall Algorithms
- - ???
- - ???
+ - Ricart and Agrawala's Algorithm
+ - Dining Philosophers
+ - Election Algorithm
 
