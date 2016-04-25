@@ -1,5 +1,5 @@
 #define N 4
-#define MAX_SKIPS 3
+#define MAX_SKIPS 1
 
 byte myleader[N];
 bool leader_found[N]
@@ -67,6 +67,7 @@ proctype server(byte i) {
     od
 
     byte that;
+    assert(myleader[i] == N - 1)
 progress: for (that : 0 .. N-1) {
         if 
             :: (leader_found[that]) ->
