@@ -81,7 +81,7 @@ proctype phil (int i) {
                         :: else -> skip;
                         fi
                     od
-                    eating = true;
+progress:           eating = true;
                     hungry = false;
                     
                     atomic {

@@ -1,5 +1,5 @@
 #define N 4
-#define MAX_SKIPS 1
+#define MAX_SKIPS 2
 
 byte myleader[N];
 bool leader_found[N]
@@ -10,29 +10,36 @@ bool awake[N]
 chan msgs[N] = [3] of {bool, byte};
 
 init {
+    chan ids = [N] of {byte};
     atomic {
         int i;
+        int j;
         for (i : 0 .. N-1) {
-            run server(i);
-            run responder(i);
+            ids ! i;
+        }
+
+        for (i : 0 .. N-1) {
+            ids ?? j;
+            run server(i, j);
+            run responder(i, j);
         }
     }
 }
 
-proctype responder(byte i) {
+proctype responder(byte i; byte rank) {
     byte other;
     byte next = (i + 1) % N;
 
-   do 
+    do 
         :: msgs[i] ? election, other ->
             atomic {
                 if 
-                    :: (other > i /*&& awake[i]*/) ->
+                    :: (other > rank) ->
                         msgs[next] ! election, other;
-                    :: (other < i && !awake[i]) ->
-                        msgs[next] ! election, i;
-                    :: (other == i) ->
-                        msgs[next] ! leader, i;
+                    :: (other < rank && !awake[i]) ->
+                        msgs[next] ! election, rank;
+                    :: (other == rank) ->
+                        msgs[next] ! leader, rank;
                     :: else -> skip;
                 fi
                 awake[i] = true;
@@ -44,7 +51,7 @@ proctype responder(byte i) {
                 leader_found[i] = true;
             }
             if
-                :: (other != i) -> msgs[next] ! leader, other;
+                :: (other != rank) -> msgs[next] ! leader, other;
                 :: else -> skip;
             fi
             break;
@@ -53,13 +60,13 @@ proctype responder(byte i) {
 
 }
 
-proctype server(byte i) {
+proctype server(byte i; byte rank) {
     byte skipcount = 0;
     do
         :: atomic {(!awake[i]) ->
                 awake[i] = true;
                 byte right = (i + 1) % N;
-                msgs[right] ! election, i;
+                msgs[right] ! election, rank;
             }
 
         :: (skipcount < MAX_SKIPS) -> skipcount = skipcount + 1;
