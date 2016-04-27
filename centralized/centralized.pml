@@ -1,6 +1,6 @@
 
 #define N 5
-#define MAX_REQS 10
+#define MAX_REQS 3
 
 chan blocking[N] = [0] of {bit};
 chan request = [N] of {byte};
@@ -19,8 +19,8 @@ init {
 }
 
 proctype central() {
-    int ppid = 0;
-    do
+    int ppid = 0; 
+end: do
         :: request ? ppid;
         atomic { 
             blocking[ppid] ? 1;
